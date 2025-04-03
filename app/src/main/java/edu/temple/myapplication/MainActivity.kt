@@ -96,5 +96,9 @@ class MainActivity : AppCompatActivity() {
             countdownTextView.text = "10"
 
         }
+
+        findViewById<Button>(R.id.pauseButton).setOnClickListener {
+            timerBinder?.pause()
+        }
     }
 }
