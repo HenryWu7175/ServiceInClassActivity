@@ -1,14 +1,18 @@
 package edu.temple.myapplication
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import android.widget.Button
+import android.widget.TextView
 
 class MainActivity : AppCompatActivity() {
 
@@ -17,6 +21,10 @@ class MainActivity : AppCompatActivity() {
     private var timerBinder: TimerService.TimerBinder? = null
     //isBound will be used to check if the service is connected to the activity
     private var isBound = false
+
+    private lateinit var countdownTextView: TextView
+    private lateinit var handler: Handler
+
 
 
     //this is the service connection object that will be used to connect to the service to communicate with it and update the UI
@@ -27,8 +35,10 @@ class MainActivity : AppCompatActivity() {
             //we cast the IBinder to a TimerBinder and set the timerBinder to it
             timerBinder = service as TimerService.TimerBinder
             isBound = true
+            //the timerBinder will be used to communicate with the service and update the UI
+            timerBinder?.setHandler(handler)
             //we set the handler to the main activity and use log to check if the service is connected to the activity
-            Log.d("MainActivity", "Service connected")
+            Log.d("TimerService status", "Connected")
         }
 
         //this will be called when the service is disconnected from the activity
@@ -37,7 +47,7 @@ class MainActivity : AppCompatActivity() {
             timerBinder = null
             isBound = false
             //we use log to check if the service is disconnected from the activity
-            Log.d("MainActivity", "Service disconnected")
+            Log.d("TimerService status", "Disconnected")
         }
     }
 
@@ -51,9 +61,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        countdownTextView = findViewById(R.id.textView)
+
+
+        // Initialize the Handler on the main thread
+        //this handler will be used to update the UI with the countdown
+        handler = Handler(Looper.getMainLooper()) { msg -> // the msg lambda is called on the main thread and is used to update the UI
+            // This code runs on the main thread
+            countdownTextView.text = msg.what.toString()
+            Log.d("Countdown", msg.what.toString())
+
+            true // Indicate that the message was handled
+        }
 
         //this intent will start the service
         val intent = Intent(this, TimerService::class.java)
@@ -63,14 +87,13 @@ class MainActivity : AppCompatActivity() {
         //this will be called when the start button is clicked and logs to check if the service is connected to the activity
         findViewById<Button>(R.id.startButton).setOnClickListener {
                 timerBinder?.start(10)
-                Log.d("MainActivity", "Service started")
 
         }
 
         //this will be called when the stop button is clicked and logs to check if the service is connected to the activity
         findViewById<Button>(R.id.stopButton).setOnClickListener {
                 timerBinder?.stop()
-                Log.d("MainActivity", "Service stopped")
+            countdownTextView.text = "10"
 
         }
     }
