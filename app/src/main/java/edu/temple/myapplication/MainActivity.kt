@@ -70,18 +70,16 @@ class MainActivity : AppCompatActivity() {
 
         startButton.setOnClickListener {
             if (isBound && timerBinder != null) {
-                if (!timerBinder!!.isRunning) {
-                    Log.d("StartButton", "Starting timer")
+                if (timerBinder!!.isRunning == false && timerBinder!!.paused == false) {
                     timerBinder?.start(10)
                     startButton.text = "Pause"
-                } else {
-                    Log.d("StartButton", "Pausing timer")
+                } else if (timerBinder!!.isRunning == true) {
                     timerBinder?.pause()
                     startButton.text = "Start"
+                } else if (timerBinder!!.paused) {
+                    timerBinder?.pause()
+                    startButton.text = "Pause"
                 }
-            } else {
-                Log.d("StartButton", "Service not bound")
-                startButton.text = "Start"
             }
         }
 
@@ -106,13 +104,13 @@ class MainActivity : AppCompatActivity() {
                 if (isBound && timerBinder != null) {
                     if (timerBinder!!.isRunning == false && timerBinder!!.paused == false) {
                         timerBinder?.start(10)
-                        startButton.text = "Start"
+                        startButton.text = "Pause"
                     } else if (timerBinder!!.isRunning == true) {
                         timerBinder?.pause()
-                        startButton.text = "Pause"
+                        startButton.text = "Start"
                     } else if (timerBinder!!.paused) {
                         timerBinder?.pause()
-                        startButton.text = "Start"
+                        startButton.text = "Pause"
                     }
                 }
                 return true
