@@ -11,36 +11,34 @@ import android.util.Log
 class TimerService : Service() {
 
     private var isRunning = false
-        private set // Make isRunning settable only within the Service
 
-    private var timerHandler: Handler? = null
+    private var timerHandler : Handler? = null
 
-    private var timerThread: TimerThread? = null // Use nullable TimerThread
+    lateinit var t: TimerThread
 
     private var paused = false
-        private set // Make paused settable only within the Service
 
     inner class TimerBinder : Binder() {
 
-        // Check if Timer is currently running (read-only)
+
+        // Check if Timer is already running
         val isRunning: Boolean
             get() = this@TimerService.isRunning
 
-        // Check if Timer is currently paused (read-only)
-        val isPaused: Boolean
+        // Check if Timer is paused
+        val paused: Boolean
             get() = this@TimerService.paused
 
         // Start a new timer
-        fun start(startValue: Int) {
-            if (!this@TimerService.paused) {
-                if (!this@TimerService.isRunning) {
-                    stopInternalTimer() // Ensure any existing timer is stopped
-                    this@TimerService.startInternalTimer(startValue)
-                } else {
-                    Log.d("TimerAction", "Timer already running")
+        fun start(startValue: Int){
+
+            if (!paused) {
+                if (!isRunning) {
+                    if (::t.isInitialized) t.interrupt()
+                    this@TimerService.start(startValue)
                 }
             } else {
-                pauseInternalTimer() // Resume if paused
+                pause()
             }
         }
 
@@ -51,17 +49,21 @@ class TimerService : Service() {
 
         // Stop a currently running timer
         fun stop() {
-            this@TimerService.stopInternalTimer()
+            if (::t.isInitialized || isRunning) {
+                t.interrupt()
+            }
         }
 
-        // Pause or resume a running timer
+        // Pause a running timer
         fun pause() {
-            this@TimerService.pauseInternalTimer()
+            this@TimerService.pause()
         }
+
     }
 
     override fun onCreate() {
         super.onCreate()
+
         Log.d("TimerService status", "Created")
     }
 
@@ -69,60 +71,55 @@ class TimerService : Service() {
         return TimerBinder()
     }
 
-    private fun startInternalTimer(startValue: Int) {
-        isRunning = true
-        paused = false
-        timerThread = TimerThread(startValue)
-        timerThread?.start()
+    fun start(startValue: Int) {
+        t = TimerThread(startValue)
+        t.start()
     }
 
-    private fun pauseInternalTimer() {
-        if (isRunning) {
+    fun pause () {
+        if (::t.isInitialized) {
             paused = !paused
-        } else {
-            Log.d("TimerAction", "Cannot pause, timer is not running")
+            isRunning = !paused
         }
     }
 
-    private fun stopInternalTimer() {
-        timerThread?.interrupt()
-        timerThread = null
-        isRunning = false
-        paused = false
-    }
-
     inner class TimerThread(private val startValue: Int) : Thread() {
+
         override fun run() {
             isRunning = true
             try {
-                for (i in startValue downTo 1) {
+                for (i in startValue downTo 1)  {
                     Log.d("Countdown", i.toString())
+
                     timerHandler?.sendEmptyMessage(i)
-                    while (paused) {
-                        sleep(100) // Small delay while paused
-                    }
+
+                    while (paused);
                     sleep(1000)
+
                 }
                 isRunning = false
-                timerHandler?.sendEmptyMessage(0) // Send 0 when finished
             } catch (e: InterruptedException) {
                 Log.d("Timer interrupted", e.toString())
                 isRunning = false
                 paused = false
-                timerHandler?.sendEmptyMessage(-1) // Indicate interruption
-            } finally {
-                isRunning = false // Ensure isRunning is false when thread ends
             }
         }
+
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
-        stopInternalTimer()
+        if (::t.isInitialized) {
+            t.interrupt()
+        }
+
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
         super.onDestroy()
+
         Log.d("TimerService status", "Destroyed")
     }
+
+
 }

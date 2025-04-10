@@ -31,14 +31,14 @@ class MainActivity : AppCompatActivity() {
             isBound = true
             timerBinder?.setHandler(handler)
             Log.d("TimerService status", "Connected")
-            updateButtonState()
+            startButton.text = "Start"
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
             timerBinder = null
             isBound = false
             Log.d("TimerService status", "Disconnected")
-            updateButtonState()
+            startButton.text = "Start"
         }
     }
 
@@ -73,14 +73,15 @@ class MainActivity : AppCompatActivity() {
                 if (!timerBinder!!.isRunning) {
                     Log.d("StartButton", "Starting timer")
                     timerBinder?.start(10)
-                    updateButtonState()
+                    startButton.text = "Pause"
                 } else {
                     Log.d("StartButton", "Pausing timer")
                     timerBinder?.pause()
-                    updateButtonState()
+                    startButton.text = "Start"
                 }
             } else {
                 Log.d("StartButton", "Service not bound")
+                startButton.text = "Start"
             }
         }
 
@@ -88,24 +89,10 @@ class MainActivity : AppCompatActivity() {
             Log.d("StopButton", "Stopping timer")
             timerBinder?.stop()
             countdownTextView.text = "10"
-            updateButtonState()
+            startButton.text = "Start"
         }
     }
 
-    private fun updateButtonState() {
-        //this checks if the timer is running or paused and updates the button text accordingly
-        if (isBound && timerBinder != null) { //checjs if the service is bound and the binder is not null
-            Log.d("ButtonState", "isRunning: ${timerBinder?.isRunning}")
-
-            if (timerBinder?.isRunning == true) {
-                startButton.text = "Pause"
-            } else {
-                startButton.text = "Start" // Default state when not running or paused
-            }
-        } else {
-            startButton.text = "Start" // Default text when not bound
-        }
-    }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main, menu)
@@ -117,12 +104,15 @@ class MainActivity : AppCompatActivity() {
             R.id.action_start -> {
                 // You might want to trigger the start action here as well if using menu
                 if (isBound && timerBinder != null) {
-                    if (!timerBinder!!.isRunning == false && !timerBinder!!.isPaused) {
+                    if (timerBinder!!.isRunning == false && timerBinder!!.paused == false) {
                         timerBinder?.start(10)
-                        updateButtonState()
-                    } else {
+                        startButton.text = "Start"
+                    } else if (timerBinder!!.isRunning == true) {
                         timerBinder?.pause()
-                        updateButtonState()
+                        startButton.text = "Pause"
+                    } else if (timerBinder!!.paused) {
+                        timerBinder?.pause()
+                        startButton.text = "Start"
                     }
                 }
                 return true
@@ -131,7 +121,7 @@ class MainActivity : AppCompatActivity() {
                 // You might want to trigger the stop action here as well if using menu
                 timerBinder?.stop()
                 countdownTextView.text = "10"
-                updateButtonState()
+                startButton.text = "Start"
                 return true
             }
             else -> return super.onOptionsItemSelected(item)
