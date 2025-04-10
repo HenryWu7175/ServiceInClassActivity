@@ -12,7 +12,6 @@
         android:layout_height="53dp"
         android:layout_marginStart="16dp"
         android:backgroundTint="#00FF00"
-        android:text="Start"
         app:layout_constraintBottom_toBottomOf="@+id/stopButton"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -26,17 +25,6 @@
         android:text="Stop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
-
-    <Button
-        android:id="@+id/pauseButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="120dp"
-        android:backgroundTint="#FF9D00"
-        android:text="Pause"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/textView"
