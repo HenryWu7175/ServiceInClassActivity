@@ -16,7 +16,20 @@ import android.view.MenuItem
 import android.widget.Button
 import android.widget.TextView
 
+/*
+When the application is counting down, if the user "Pauses"
+* the countdown, it should save current countdown value to persistent
+* storage.
+Having paused and saved the current countdown, if the user closes,
+* reopens, and then tries to start a new countdown, the timer should
+* continue from the previously Paused value
+If the user does not pause the timer before exiting the app, restart
+* the app and starting a timer should force it to begin from the initial
+*  countdown value (100 or some other default).
+*/
 class MainActivity : AppCompatActivity() {
+
+
 
     private var timerBinder: TimerService.TimerBinder? = null
     private var isBound = false
@@ -26,12 +39,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var stopButton: Button // Initialize stopButton
 
     private val serviceConnection = object : ServiceConnection {
+
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             timerBinder = service as TimerService.TimerBinder
             isBound = true
             timerBinder?.setHandler(handler)
             Log.d("TimerService status", "Connected")
-            startButton.text = "Start"
+            val savedValue = timerBinder?.getCurrentValue() ?: 0
+            if (savedValue > 0 && timerBinder?.isRunning == false && timerBinder?.paused == true) {
+                countdownTextView.text = savedValue.toString()
+                startButton.text = "Resume"
+            } else {
+                countdownTextView.text = "10"
+                startButton.text = "Start"
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -47,6 +68,8 @@ class MainActivity : AppCompatActivity() {
         if (isBound) {
             unbindService(serviceConnection)
             isBound = false
+            timerBinder = null
+            Log.d("TimerService status", "Unbound")
         }
     }
 
@@ -70,14 +93,18 @@ class MainActivity : AppCompatActivity() {
 
         startButton.setOnClickListener {
             if (isBound && timerBinder != null) {
-                if (timerBinder!!.isRunning == false && timerBinder!!.paused == false) {
+                val savedValue = timerBinder?.getCurrentValue() ?: 0
+                if (!timerBinder!!.isRunning && !timerBinder!!.paused) {
                     timerBinder?.start(10)
+                    //give  option to pause when timer just started
                     startButton.text = "Pause"
-                } else if (timerBinder!!.isRunning == true) {
+                } else if (timerBinder!!.isRunning) {
+                    //give option to resume after pause
                     timerBinder?.pause()
-                    startButton.text = "Start"
+                    startButton.text = "Resume"
                 } else if (timerBinder!!.paused) {
                     timerBinder?.pause()
+                    //give option to pause adter resumed
                     startButton.text = "Pause"
                 }
             }
@@ -107,7 +134,7 @@ class MainActivity : AppCompatActivity() {
                         startButton.text = "Pause"
                     } else if (timerBinder!!.isRunning == true) {
                         timerBinder?.pause()
-                        startButton.text = "Start"
+                        startButton.text = "Resume"
                     } else if (timerBinder!!.paused) {
                         timerBinder?.pause()
                         startButton.text = "Pause"

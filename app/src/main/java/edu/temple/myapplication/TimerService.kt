@@ -1,6 +1,7 @@
 package edu.temple.myapplication
 
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.os.Binder
 import android.os.Handler
@@ -16,7 +17,13 @@ class TimerService : Service() {
 
     lateinit var t: TimerThread
 
-    private var paused = false
+    private var paused: Boolean = false
+
+    private lateinit var sharedPreferences: android.content.SharedPreferences
+
+    private var currentCountdownValue: Int = 0 // Initialize with a default value
+
+    private val PREFERENCES_KEY = "countdown_value"
 
     inner class TimerBinder : Binder() {
 
@@ -38,6 +45,7 @@ class TimerService : Service() {
                     this@TimerService.start(startValue)
                 }
             } else {
+                // If timer is paused, resume it
                 pause()
             }
         }
@@ -49,22 +57,27 @@ class TimerService : Service() {
 
         // Stop a currently running timer
         fun stop() {
-            if (::t.isInitialized || isRunning) {
+            if (::t.isInitialized || isRunning || paused) {
                 t.interrupt()
+                this@TimerService.paused = false //reset paused flag
+                saveState(0)
             }
         }
 
         // Pause a running timer
         fun pause() {
-            this@TimerService.pause()
+                this@TimerService.pause()
         }
-
+        fun getCurrentValue(): Int {
+            return currentCountdownValue
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
-
         Log.d("TimerService status", "Created")
+        sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        currentCountdownValue = sharedPreferences.getInt(PREFERENCES_KEY, 0)
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -77,10 +90,22 @@ class TimerService : Service() {
     }
 
     fun pause () {
-        if (::t.isInitialized) {
+        if (::t.isInitialized && isRunning) {
             paused = !paused
             isRunning = !paused
+            if (paused) {
+                saveState(currentCountdownValue)
+            }
         }
+    }
+
+    private fun saveState(value: Int) {
+        val editor = sharedPreferences.edit()
+        editor.putInt(PREFERENCES_KEY, value)
+        editor.apply()
+        Log.d("TimerService status", "Saved state $value")
+
+
     }
 
     inner class TimerThread(private val startValue: Int) : Thread() {
@@ -90,6 +115,8 @@ class TimerService : Service() {
             try {
                 for (i in startValue downTo 1)  {
                     Log.d("Countdown", i.toString())
+
+                    currentCountdownValue = i
 
                     timerHandler?.sendEmptyMessage(i)
 
