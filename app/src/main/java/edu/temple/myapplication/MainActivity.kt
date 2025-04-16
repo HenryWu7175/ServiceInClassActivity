@@ -25,10 +25,9 @@ Having paused and saved the current countdown, if the user closes,
 * continue from the previously Paused value
 If the user does not pause the timer before exiting the app, restart
 * the app and starting a timer should force it to begin from the initial
-*  countdown value (100 or some other default).
+* countdown value (100 or some other default).
 */
 class MainActivity : AppCompatActivity() {
-
 
 
     private var timerBinder: TimerService.TimerBinder? = null
@@ -97,20 +96,22 @@ class MainActivity : AppCompatActivity() {
         startButton.setOnClickListener {
             if (isBound && timerBinder != null) {
                 val savedValue = timerBinder?.getCurrentValue() ?: 0
-                if (timerBinder!!.isRunning == false) {
+                if (!timerBinder!!.isRunning) {
                     if (timerBinder!!.paused && savedValue > 0 && startButton.text == "Resume") {
-                        timerBinder?.pause() // Resume
+                        // Resume the paused timer
+                        timerBinder?.start(savedValue) // Start from the saved value
                         startButton.text = "Pause"
                         hasResumed = true
                     } else {
-                        // Start a new countdown with the default value
+                        // Start a new timer
                         timerBinder?.start(defaultCountdownValue)
                         startButton.text = "Pause"
                         hasResumed = false
-                        timerBinder?.resetSavedValue() // Ensure saved value is cleared
+                        timerBinder?.resetSavedValue() // Ensure saved value is cleared for a new start
                         countdownTextView.text = defaultCountdownValue.toString() // Update UI immediately
                     }
-                } else if (timerBinder!!.isRunning == true) {
+                } else {
+                    // Timer is running, so pause it
                     timerBinder?.pause()
                     startButton.text = "Resume"
                 }
@@ -122,49 +123,6 @@ class MainActivity : AppCompatActivity() {
             timerBinder?.stop()
             countdownTextView.text = defaultCountdownValue.toString()
             startButton.text = "Start"
-        }
-    }
-
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.main, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.action_start -> {
-                // You might want to trigger the start action here as well if using menu
-                if (isBound && timerBinder != null) {
-                    val savedValue = timerBinder?.getCurrentValue() ?: 0
-                    if (timerBinder!!.isRunning == false) {
-                        if (timerBinder!!.paused && savedValue > 0 && startButton.text == "Resume") {
-                            timerBinder?.pause() // Resume
-                            startButton.text = "Pause"
-                            hasResumed = true
-                        } else {
-                            // Start a new countdown with the default value
-                            timerBinder?.start(defaultCountdownValue)
-                            startButton.text = "Pause"
-                            hasResumed = false
-                            timerBinder?.resetSavedValue() // Ensure saved value is cleared
-                            countdownTextView.text = defaultCountdownValue.toString() // Update UI immediately
-                        }
-                    } else if (timerBinder!!.isRunning == true) {
-                        timerBinder?.pause()
-                        startButton.text = "Resume"
-                    }
-                }
-                return true
-            }
-            R.id.action_stop -> {
-                // You might want to trigger the stop action here as well if using menu
-                timerBinder?.stop()
-                countdownTextView.text = defaultCountdownValue.toString()
-                startButton.text = "Start"
-                return true
-            }
-            else -> return super.onOptionsItemSelected(item)
         }
     }
 }

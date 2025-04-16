@@ -66,7 +66,13 @@ class TimerService : Service() {
 
         // Pause a running timer
         fun pause() {
-                this@TimerService.pause()
+            if (::t.isInitialized && isRunning) {
+                this@TimerService.paused = !paused
+                this@TimerService.isRunning = !paused
+                if (paused) {
+                    saveState(currentCountdownValue)
+                }
+            }
         }
         fun getCurrentValue(): Int {
             return currentCountdownValue
@@ -81,6 +87,8 @@ class TimerService : Service() {
         super.onCreate()
         Log.d("TimerService status", "Created")
         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        loadState()
+
         currentCountdownValue = sharedPreferences.getInt(PREFERENCES_KEY, 0)
     }
 
@@ -119,6 +127,11 @@ class TimerService : Service() {
         Log.d("TimerService", "Saved countdown value reset")
     }
 
+    override fun restoreState() {
+        val savedValue = sharedPreferences.getInt(PREFERENCES_KEY, 0)
+
+    }
+
 
     inner class TimerThread(private val startValue: Int) : Thread() {
 
@@ -147,6 +160,10 @@ class TimerService : Service() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        Log.d("TimerService status", "onUnbind called, saving state: $currentCountdownValue")
+        if (isRunning || paused) { // Save if running OR paused
+            saveState(currentCountdownValue)
+        }
         if (::t.isInitialized) {
             t.interrupt()
         }
