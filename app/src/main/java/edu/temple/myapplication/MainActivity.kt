@@ -37,6 +37,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var handler: Handler
     private lateinit var startButton: Button
     private lateinit var stopButton: Button // Initialize stopButton
+    private var hasResumed = false
+    private var defaultCountdownValue = 10
 
     private val serviceConnection = object : ServiceConnection {
 
@@ -50,7 +52,7 @@ class MainActivity : AppCompatActivity() {
                 countdownTextView.text = savedValue.toString()
                 startButton.text = "Resume"
             } else {
-                countdownTextView.text = "10"
+                countdownTextView.text = defaultCountdownValue.toString()
                 startButton.text = "Start"
             }
         }
@@ -91,21 +93,26 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, TimerService::class.java)
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
 
+
         startButton.setOnClickListener {
             if (isBound && timerBinder != null) {
                 val savedValue = timerBinder?.getCurrentValue() ?: 0
-                if (!timerBinder!!.isRunning && !timerBinder!!.paused) {
-                    timerBinder?.start(10)
-                    //give  option to pause when timer just started
-                    startButton.text = "Pause"
-                } else if (timerBinder!!.isRunning) {
-                    //give option to resume after pause
+                if (timerBinder!!.isRunning == false) {
+                    if (timerBinder!!.paused && savedValue > 0 && startButton.text == "Resume") {
+                        timerBinder?.pause() // Resume
+                        startButton.text = "Pause"
+                        hasResumed = true
+                    } else {
+                        // Start a new countdown with the default value
+                        timerBinder?.start(defaultCountdownValue)
+                        startButton.text = "Pause"
+                        hasResumed = false
+                        timerBinder?.resetSavedValue() // Ensure saved value is cleared
+                        countdownTextView.text = defaultCountdownValue.toString() // Update UI immediately
+                    }
+                } else if (timerBinder!!.isRunning == true) {
                     timerBinder?.pause()
                     startButton.text = "Resume"
-                } else if (timerBinder!!.paused) {
-                    timerBinder?.pause()
-                    //give option to pause adter resumed
-                    startButton.text = "Pause"
                 }
             }
         }
@@ -113,7 +120,7 @@ class MainActivity : AppCompatActivity() {
         stopButton.setOnClickListener {
             Log.d("StopButton", "Stopping timer")
             timerBinder?.stop()
-            countdownTextView.text = "10"
+            countdownTextView.text = defaultCountdownValue.toString()
             startButton.text = "Start"
         }
     }
@@ -129,15 +136,23 @@ class MainActivity : AppCompatActivity() {
             R.id.action_start -> {
                 // You might want to trigger the start action here as well if using menu
                 if (isBound && timerBinder != null) {
-                    if (timerBinder!!.isRunning == false && timerBinder!!.paused == false) {
-                        timerBinder?.start(10)
-                        startButton.text = "Pause"
+                    val savedValue = timerBinder?.getCurrentValue() ?: 0
+                    if (timerBinder!!.isRunning == false) {
+                        if (timerBinder!!.paused && savedValue > 0 && startButton.text == "Resume") {
+                            timerBinder?.pause() // Resume
+                            startButton.text = "Pause"
+                            hasResumed = true
+                        } else {
+                            // Start a new countdown with the default value
+                            timerBinder?.start(defaultCountdownValue)
+                            startButton.text = "Pause"
+                            hasResumed = false
+                            timerBinder?.resetSavedValue() // Ensure saved value is cleared
+                            countdownTextView.text = defaultCountdownValue.toString() // Update UI immediately
+                        }
                     } else if (timerBinder!!.isRunning == true) {
                         timerBinder?.pause()
                         startButton.text = "Resume"
-                    } else if (timerBinder!!.paused) {
-                        timerBinder?.pause()
-                        startButton.text = "Pause"
                     }
                 }
                 return true
@@ -145,7 +160,7 @@ class MainActivity : AppCompatActivity() {
             R.id.action_stop -> {
                 // You might want to trigger the stop action here as well if using menu
                 timerBinder?.stop()
-                countdownTextView.text = "10"
+                countdownTextView.text = defaultCountdownValue.toString()
                 startButton.text = "Start"
                 return true
             }

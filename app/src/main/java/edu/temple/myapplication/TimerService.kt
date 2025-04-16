@@ -71,6 +71,10 @@ class TimerService : Service() {
         fun getCurrentValue(): Int {
             return currentCountdownValue
         }
+
+        fun resetSavedValue() {
+            this@TimerService.resetSavedValue()
+        }
     }
 
     override fun onCreate() {
@@ -107,6 +111,14 @@ class TimerService : Service() {
 
 
     }
+
+    private fun resetSavedValue() {
+        val editor = sharedPreferences.edit()
+        editor.remove(PREFERENCES_KEY)
+        editor.apply()
+        Log.d("TimerService", "Saved countdown value reset")
+    }
+
 
     inner class TimerThread(private val startValue: Int) : Thread() {
 
